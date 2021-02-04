@@ -72,7 +72,7 @@ FROM
   JOIN properties ON reservations.property_id = properties.id
   JOIN property_reviews ON properties.id = property_reviews.property_id
 WHERE
-  reservations.guest_id = 1
+  reservations.guest_id = $1
   AND reservations.end_date < now() :: DATE
 GROUP BY
   properties.id,
@@ -80,8 +80,8 @@ GROUP BY
 ORDER BY
   reservations.start_date
 LIMIT
-  $1;
-        `, [limit])
+  $2;
+        `, [guest_id, limit])
     .then(res => res.rows);
 }
 exports.getAllReservations = getAllReservations;
