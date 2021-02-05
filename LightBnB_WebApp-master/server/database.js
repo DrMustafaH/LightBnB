@@ -1,10 +1,5 @@
-const { Pool } = require('pg');
+const db = require('./db')
 
-const pool = new Pool({
-  database: 'lightbnb'
-});
-const properties = require('./json/properties.json');
-const users = require('./json/users.json');
 
 /// Users
 
@@ -14,11 +9,22 @@ const users = require('./json/users.json');
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithEmail = function (email) {
-  return pool.query(`
+  const queryStr = `
   SELECT * FROM users
   WHERE email = $1;
-  `, [email])
-    .then(res => (res.rows[0]));
+  `;
+
+  return db.query(queryStr, [email])
+    .then(res => {
+      if (res.rows) {
+        return res.rows[0];
+      } else {
+        return null;
+      }
+    })
+    .catch(err => {
+      return console.log('ERROR OCCURED:', err);
+    })
 }
 exports.getUserWithEmail = getUserWithEmail;
 
@@ -28,12 +34,23 @@ exports.getUserWithEmail = getUserWithEmail;
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithId = function (id) {
-  return pool.query(`
+  const queryStr = `
   SELECT * FROM users
   WHERE id = $1;
-  `, [id])
-    .then(res => (res.rows[0]));
-}
+  `;
+  return db.query(queryStr, [id])
+    .then(res => {
+      if (res.rows) {
+        return res.rows[0];
+      } else {
+        return null;
+      }
+    })
+    .catch(err => {
+      return console.log('ERROR OCCURED:', err);
+    })
+};
+
 exports.getUserWithId = getUserWithId;
 
 
@@ -43,15 +60,24 @@ exports.getUserWithId = getUserWithId;
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser = function (user) {
-  return pool.query(`
+  const queryStr = `
   INSERT INTO
   users (name, email, password) 
   VALUES ($1, $2, $3)
   RETURNING *
   ;
-  `, [user.name, user.email, user.password])
-    .then(res => res.rows[0])
-}
+  `
+  const values = [user.name, user.email, user.password];
+
+  return db.query(queryStr, values)
+    .then(res => {
+      return res.rows[0];
+    })
+    .catch(err => {
+      return console.log('ERROR OCCURED:', err);
+    })
+};
+
 exports.addUser = addUser;
 
 /// Reservations
@@ -62,7 +88,7 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function (guest_id, limit = 10) {
-  return pool.query(`
+  const queryStr = `
   SELECT
   reservations.*,
   properties.*,
@@ -80,10 +106,16 @@ GROUP BY
 ORDER BY
   reservations.start_date
 LIMIT
-  $2;
-        `, [guest_id, limit])
-    .then(res => res.rows);
-}
+  $2;`
+  return db.query(queryStr, [guest_id, limit])
+    .then(res => {
+      return res.rows;
+    })
+    .catch(err => {
+      return console.log('ERROR OCCURED:', err);
+    })
+};
+
 exports.getAllReservations = getAllReservations;
 
 /// Properties
@@ -132,18 +164,21 @@ JOIN property_reviews ON property_id = properties.id `;
     }
   }
 
-
   queryParams.push(limit);
   queryStr += `GROUP BY properties.id
 ORDER BY cost_per_night
 LIMIT $${queryParams.length};`
 
-  console.log("HERE", queryStr, queryParams);
+  // console.log(queryStr, queryParams);
 
-  return pool.query(queryStr, queryParams)
-    .then(res => res.rows)
-
-}
+  return db.query(queryStr, queryParams)
+    .then(res => {
+      return res.rows
+    })
+    .catch(err => {
+      return console.log('ERROR OCCURED:', err);
+    })
+};
 
 exports.getAllProperties = getAllProperties;
 
@@ -154,13 +189,21 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function (property) {
-  return pool.query(`
+  const queryStr = `
   INSERT INTO
   properties (owner_id, title, description, thumbnail_photo_url, cover_photo_url, cost_per_night, street, city, province, post_code, country, parking_spaces, number_of_bathrooms, number_of_bedrooms) 
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-  RETURNING *
-  ;
-  `, [property.owner_id, property.title, property.description, property.thumbnail_photo_url, property.cover_photo_url, property.cost_per_night, property.street, property.city, property.province, property.post_code, property.country, property.parking_spaces, property.number_of_bathrooms, property.number_of_bedrooms])
-    .then(res => res.rows[0])
-}
+  RETURNING *;`;
+
+  const values = [property.owner_id, property.title, property.description, property.thumbnail_photo_url, property.cover_photo_url, property.cost_per_night, property.street, property.city, property.province, property.post_code, property.country, property.parking_spaces, property.number_of_bathrooms, property.number_of_bedrooms];
+
+  return db.query(queryStr, values)
+    .then(res => {
+      return res.rows[0];
+    })
+    .catch(err => {
+      return console.log('ERROR OCCURED:', err);
+    })
+};
+
 exports.addProperty = addProperty;
